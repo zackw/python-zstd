@@ -33,7 +33,7 @@
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
-#include "zstd.h"
+#include <zstd.h>
 
 #if ZSTD_VERSION_NUMBER < 10304
 # error "python-zstd must be built using libzstd >= 1.3.4"
