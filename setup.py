@@ -10,6 +10,9 @@ from setuptools.command.build_ext import build_ext as cmd_build_ext
 from distutils.command.clean import clean as cmd_clean
 from distutils.sysconfig import get_config_var
 
+if __name__ != '__main__':
+    raise RuntimeError("don't import setup.py")
+
 # Get the package version number from PKG-INFO.
 with open("PKG-INFO", "rt") as fp:
     for line in fp:
@@ -163,59 +166,50 @@ else: # not SUP_EXTERNAL
                 "make", "-C", "libzstd/lib", "clean"
             ])
 
-# unittest.TestLoader.discover was added in 2.7.
-def my_test_suite():
-    import unittest
-    import glob
-    return unittest.defaultTestLoader.loadTestsFromNames(sorted(
-        test[:-3].replace("/", ".")
-        for test in glob.glob("tests/test_*.py")
-    ))
 
-if __name__ == '__main__':
-    with open("README.rst", "r") as readme:
-        long_description = readme.read()
+with open("README.rst", "r") as readme:
+    long_description = readme.read()
 
-    setup(
-        name="zstd2",
-        version=PKG_VERSION_STR,
-        description="Simple API for Zstandard compression and decompression",
-        long_description=long_description,
-        author="Zack Weinberg, Sergey Dryabzhinsky, Anton Stuk",
-        author_email="zackw@panix.com",
-        maintainer="Zack Weinberg",
-        maintainer_email="zackw@panix.com",
-        url="https://github.com/zackw/python-zstd",
-        keywords=["zstd", "zstandard", "compression"],
-        license="BSD",
-        packages=find_packages(exclude="tests"),
-        ext_modules=[
-            Extension("zstd._zstd",
-                      sources=["zstd/_zstd.c"],
-                      define_macros=ext_defines,
-                      include_dirs=ext_include_dirs,
-                      extra_compile_args=ext_cflags,
-                      libraries=ext_libraries,
-                      library_dirs=ext_library_dirs,
-                      extra_link_args=ext_ldflags
-            )
-        ],
-        cmdclass = {
-            "build_ext": zstd_build_ext,
-            "clean": zstd_clean,
-        },
-        test_suite="setup.my_test_suite",
-        classifiers=[
-            "License :: OSI Approved :: BSD License",
-            "Intended Audience :: Developers",
-            "Development Status :: 5 - Production/Stable",
-            "Operating System :: POSIX",
-            "Programming Language :: C",
-            "Programming Language :: Python",
-            "Programming Language :: Python :: 2.7",
-            "Programming Language :: Python :: 3.4",
-            "Programming Language :: Python :: 3.5",
-            "Programming Language :: Python :: 3.6",
-            "Programming Language :: Python :: 3.7",
-        ]
-    )
+setup(
+    name="zstd2",
+    version=PKG_VERSION_STR,
+    description="Simple API for Zstandard compression and decompression",
+    long_description=long_description,
+    author="Zack Weinberg, Sergey Dryabzhinsky, Anton Stuk",
+    author_email="zackw@panix.com",
+    maintainer="Zack Weinberg",
+    maintainer_email="zackw@panix.com",
+    url="https://github.com/zackw/python-zstd",
+    keywords=["zstd", "zstandard", "compression"],
+    license="BSD",
+    packages=find_packages(exclude="tests"),
+    ext_modules=[
+        Extension("zstd._zstd",
+                  sources=["zstd/_zstd.c"],
+                  define_macros=ext_defines,
+                  include_dirs=ext_include_dirs,
+                  extra_compile_args=ext_cflags,
+                  libraries=ext_libraries,
+                  library_dirs=ext_library_dirs,
+                  extra_link_args=ext_ldflags
+        )
+    ],
+    cmdclass = {
+        "build_ext": zstd_build_ext,
+        "clean": zstd_clean,
+    },
+    test_suite="tests",
+    classifiers=[
+        "License :: OSI Approved :: BSD License",
+        "Intended Audience :: Developers",
+        "Development Status :: 5 - Production/Stable",
+        "Operating System :: POSIX",
+        "Programming Language :: C",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+    ]
+)
