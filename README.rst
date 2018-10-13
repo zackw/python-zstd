@@ -145,12 +145,17 @@ Compatibility Notes
 Support for legacy versions of the Zstandard compressed data format
 (those produced by libzstd version 0.7 and earlier) depends only on
 how libzstd was configured.  There is no longer any selection to be
-made when building this module.
+made when building this module.  The constant ``zstd.MIN_LEGACY_FORMAT``
+indicates the oldest legacy format that can be decompressed; it will
+be a number from 1 (all legacy formats supported) to 8 (only the final
+format produced by libzstd 0.8 and later is supported).
 
 Old versions of this module (prior to 1.0.0.99.1) produced compressed
-data with a custom header other consumers of Zstd-compressed data
-cannot read.  ``zstd.decompress`` can still decompress data in this
-format, but ``zstd.compress`` will not produce it.
+data with a custom header that other consumers of Zstandard compressed
+data cannot read.  ``zstd.decompress`` can still decompress data in
+this format, but ``zstd.compress`` will not produce it.  Note that
+this custom header could appear with any of the legacy versions, or
+the current version, of the compressed data format.
 
 Old versions of this module (prior to 2.0) had version numbers that
 depended on the version number of the bundled libzstd.  This is no

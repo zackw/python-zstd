@@ -28,21 +28,10 @@ with open("PKG-INFO", "rt") as fp:
 ###
 # Command line options
 #
-SUP_LEGACY = 0
 SUP_EXTERNAL = 0
 
 # The environment variables ensure that if setup() recursively invokes
 # this setup.py in a subprocess, it gets the same settings.
-
-# Support legacy versions of the compressed file format: both
-# those produced by libzstd 0.7.x and older, and those produced
-# by versions of this package prior to 1.0.0.99.1.
-if "--legacy" in sys.argv:
-    sys.argv.remove("--legacy")
-    os.environ["PYZSTD_LEGACY"] = "1"
-    SUP_LEGACY = 1
-elif os.environ.get("PYZSTD_LEGACY", "0") == "1":
-    SUP_LEGACY = 1
 
 # Use an externally supplied copy of libzstd, instead of the bundled one.
 if "--external" in sys.argv:
@@ -51,14 +40,6 @@ if "--external" in sys.argv:
     SUP_EXTERNAL = 1
 elif os.environ.get("PYZSTD_EXTERNAL", "0") == "1":
     SUP_EXTERNAL = 1
-
-if SUP_LEGACY and SUP_EXTERNAL:
-    # We have to compile libzstd specially to get legacy format
-    # support, so we can't use an external libzstd in that case.
-    sys.stderr.write(
-        "setup.py: error: legacy file formats are not supported with "
-        "external libzstd\n")
-    sys.exit(1)
 
 ext_defines = [("PKG_VERSION_STR", '"' + PKG_VERSION_STR + '"')]
 ext_include_dirs = []
@@ -123,8 +104,6 @@ else: # not SUP_EXTERNAL
     ext_libraries.append("zstd")
     ext_library_dirs.append("libzstd/lib")
     ext_include_dirs.append("libzstd/lib")
-    if SUP_LEGACY:
-        ext_defines.append(("ZSTD_LEGACY_SUPPORT", "1"))
 
     # Override build_ext.build_extensions to run 'make' in the libzstd
     # subdirectory first.
@@ -150,7 +129,6 @@ else: # not SUP_EXTERNAL
                 "-C", "libzstd/lib", "libzstd.a",
                 "DEBUGFLAGS=",
                 "MOREFLAGS=" + (get_config_var("CCSHARED") or ""),
-                "ZSTD_LEGACY_SUPPORT=%d" % SUP_LEGACY,
                 "ZSTD_LIB_DEPRECATED=0",
                 "ZSTD_LIB_DICTBUILDER=0",
             ])

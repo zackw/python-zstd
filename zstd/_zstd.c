@@ -97,7 +97,7 @@ static PyObject *ZstdError;
    agnostic way.  Returns 0 on success, -1 on failure (in which case an
    exception has been set).  As with "y*", caller is responsible for
    calling PyBuffer_Release.  */
-static int
+static inline int
 obj_AsByteBuffer(PyObject *obj, Py_buffer *view)
 {
     if (PyObject_GetBuffer(obj, view, PyBUF_SIMPLE) != 0) {
@@ -112,6 +112,46 @@ obj_AsByteBuffer(PyObject *obj, Py_buffer *view)
     return 0;
 }
 
+/* Check for a pre-1.0.0.99 frame header; if detected, update src_ptr,
+   src_size, and raw_frame_size to skip over it.  */
+static inline int
+skip_old_frame_header(const unsigned char **src_ptr, size_t *src_size,
+                      unsigned long long *raw_frame_size)
+{
+    /* An old frame header is a 4-byte little-endian integer giving
+       the uncompressed length, followed by normal compressed data,
+       which always begins with a four-byte magic number (even when
+       legacy compressed formats are in use).  Therefore, if we don't
+       have at least 8 bytes of data, it's not an old frame header.  */
+    if (*src_size < 8)
+        return 0;
+
+    const unsigned char *p = *src_ptr;
+    unsigned long long old_frame_size =
+        (((unsigned long long) p[0]) <<  0) |
+        (((unsigned long long) p[1]) <<  8) |
+        (((unsigned long long) p[2]) << 16) |
+        (((unsigned long long) p[3]) << 24);
+
+    /* Old frames were limited to 0x7fff_ffff bytes of uncompressed data.
+       Conveniently, this means we can't confuse an old frame header with
+       any version of the Zstandard magic number, because all of those
+       numbers have high (fourth) byte 0xFD.  */
+    if (old_frame_size > 0x80000000ull)
+        return 0;
+
+    unsigned long long check_frame_size =
+        ZSTD_getFrameContentSize(*src_ptr + 4, *src_size - 4);
+
+    if (check_frame_size != old_frame_size &&
+        check_frame_size != ZSTD_CONTENTSIZE_UNKNOWN)
+        return 0;
+
+    *src_ptr += 4;
+    *src_size -= 4;
+    *raw_frame_size = old_frame_size;
+    return 1;
+}
 
 /* For use in docstrings.  */
 #define S_(x) #x
@@ -190,48 +230,18 @@ static PyObject *compress(PyObject* self, PyObject *args, PyObject *kwds)
     return dst;
 }
 
-
-PyDoc_STRVAR(decompress_doc,
-    "decompress(data)\n"
-    "--\n\n"
-    "Decompress data and return the uncompressed form.\n"
-    "Raises a zstd.Error exception if any error occurs.");
-
-static PyObject *decompress(PyObject* self, PyObject *args, PyObject *kwds)
+static PyObject *decompress_fixed(const unsigned char *src_ptr,
+                                  size_t src_size,
+                                  unsigned long long raw_frame_size)
 {
-    PyObject *src;
-    Py_buffer srcbuf;
     PyObject *dst;
     char *dst_ptr;
     size_t dst_size;
-    size_t c_size;
-    unsigned long long raw_frame_size;
+    size_t d_size;
 
-    static char *kwlist[] = {"data", NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O:decompress", kwlist,
-                                     &src))
-        return NULL;
-
-    if (obj_AsByteBuffer(src, &srcbuf))
-        return NULL;
-
-    raw_frame_size = ZSTD_getFrameContentSize(srcbuf.buf, srcbuf.len);
-    if (raw_frame_size == ZSTD_CONTENTSIZE_ERROR) {
-        PyErr_SetString(ZstdError, "compressed data is invalid");
-        PyBuffer_Release(&srcbuf);
-        return NULL;
-    }
-    if (raw_frame_size == ZSTD_CONTENTSIZE_UNKNOWN) {
-        PyErr_SetString(ZstdError,
-                        "decompress() cannot handle compressed data "
-                        "with unknown decompressed size");
-        PyBuffer_Release(&srcbuf);
-        return NULL;
-    }
     if (raw_frame_size > (unsigned long long)PY_SSIZE_T_MAX) {
         PyErr_SetString(ZstdError,
                         "decompressed data is too large for a bytes object");
-        PyBuffer_Release(&srcbuf);
         return NULL;
     }
 
@@ -242,20 +252,113 @@ static PyObject *decompress(PyObject* self, PyObject *args, PyObject *kwds)
         dst_ptr = PyBytes_AS_STRING(dst);
 
         Py_BEGIN_ALLOW_THREADS;
-        c_size = ZSTD_decompress(dst_ptr, dst_size, srcbuf.buf, srcbuf.len);
+        d_size = ZSTD_decompress(dst_ptr, dst_size, src_ptr, src_size);
         Py_END_ALLOW_THREADS;
 
-        if (ZSTD_isError(c_size)) {
+        if (ZSTD_isError(d_size)) {
             PyErr_Format(ZstdError, "Decompression error: %s",
-                         ZSTD_getErrorName(c_size));
+                         ZSTD_getErrorName(d_size));
             Py_CLEAR(dst);
 
-        } else if (c_size != dst_size) {
+        } else if (d_size != dst_size) {
             PyErr_Format(ZstdError, "Decompression error: length mismatch "
-                         "(expected %zu, got %zu bytes)", dst_size, c_size);
+                         "(expected %zu, got %zu bytes)", dst_size, d_size);
             Py_CLEAR(dst);
         }
     }
+    return dst;
+}
+
+static PyObject *decompress_stream(const unsigned char *src_ptr, size_t src_size)
+{
+    PyObject *dst;
+    size_t dst_size;
+    size_t d_size;
+    ZSTD_DStream *zds;
+    ZSTD_outBuffer obuf;
+    ZSTD_inBuffer ibuf;
+
+    zds = ZSTD_createDStream();
+    if (zds == NULL)
+        return PyErr_NoMemory();
+
+    dst_size = ZSTD_DStreamOutSize();
+    dst = PyBytes_FromStringAndSize(NULL, dst_size);
+    if (dst == NULL) {
+        ZSTD_freeDStream(zds);
+        return NULL; /* error already set */
+    }
+
+    ibuf.pos = 0;
+    ibuf.src = src_ptr;
+    ibuf.size = src_size;
+    obuf.pos = 0;
+    for (;;) {
+        obuf.dst = PyBytes_AS_STRING(dst);
+        obuf.size = dst_size;
+
+        Py_BEGIN_ALLOW_THREADS;
+        d_size = ZSTD_decompressStream(zds, &obuf, &ibuf);
+        Py_END_ALLOW_THREADS;
+
+        if (ZSTD_isError(d_size)) {
+            PyErr_Format(ZstdError, "Decompression error: %s",
+                         ZSTD_getErrorName(d_size));
+            Py_CLEAR(dst);
+            break;
+        }
+        if (ibuf.pos == ibuf.size) {
+            _PyBytes_Resize(&dst, obuf.pos);
+            break;
+        }
+        /* need more space */
+        dst_size *= 2;
+        _PyBytes_Resize(&dst, dst_size);
+        if (dst == NULL) break;
+    }
+    ZSTD_freeDStream(zds);
+    return dst;
+}
+
+
+PyDoc_STRVAR(decompress_doc,
+    "decompress(data)\n"
+    "--\n\n"
+    "Decompress data and return the uncompressed form.\n"
+    "Raises a zstd.Error exception if any error occurs.");
+
+static PyObject *decompress(PyObject* self, PyObject *args, PyObject *kwds)
+{
+    PyObject *dst;
+    PyObject *src;
+    Py_buffer srcbuf;
+    const unsigned char *src_ptr;
+    size_t src_size;
+    unsigned long long raw_frame_size;
+
+    static char *kwlist[] = {"data", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O:decompress", kwlist,
+                                     &src))
+        return NULL;
+
+    if (obj_AsByteBuffer(src, &srcbuf))
+        return NULL;
+    src_ptr = (const unsigned char *)srcbuf.buf;
+    src_size = srcbuf.len;
+
+    raw_frame_size = ZSTD_getFrameContentSize(src_ptr, src_size);
+    if (raw_frame_size == ZSTD_CONTENTSIZE_ERROR
+        && !skip_old_frame_header(&src_ptr, &src_size, &raw_frame_size))
+    {
+        PyErr_SetString(ZstdError, "compressed data is invalid");
+        PyBuffer_Release(&srcbuf);
+        return NULL;
+    }
+
+    if (raw_frame_size == ZSTD_CONTENTSIZE_UNKNOWN)
+        dst = decompress_stream(src_ptr, src_size);
+    else
+        dst = decompress_fixed(src_ptr, src_size, raw_frame_size);
 
     PyBuffer_Release(&srcbuf);
     return dst;
@@ -293,167 +396,32 @@ static PyObject *library_version_number(PyObject* self)
 #endif
 }
 
-#if defined PYZSTD_LEGACY && PYZSTD_LEGACY > 0
 
-/* Macros and other changes from python-lz4.c
- * Copyright (c) 2012-2013, Steeve Morin
- * All rights reserved. */
-
-static const Py_ssize_t old_max_size = 0x7fffffff;
-static const size_t hdr_size = 4;
-
-static inline void store_le32(char *c, size_t x)
+/* There is no official way to query which legacy formats libzstd supports.
+   These strings are the compression of zero bytes of data with versions 0.1
+   through 0.8 of libzstd, and we see which ones ZSTD_getFrameContentSize will
+   admit to understanding.  */
+static int
+detect_zstd_legacy_format_support(void)
 {
-    c[0] = (x >>  0) & 0xff;
-    c[1] = (x >>  8) & 0xff;
-    c[2] = (x >> 16) & 0xff;
-    c[3] = (x >> 24) & 0xff;
+    static const unsigned char legacy_compressions[][13] = {
+        "\xfd\x2f\xb5\x1e\xc0\x00\x00\x00\x00\x00\x00\x00\x00",
+        "\x22\xb5\x2f\xfd\xc0\x00\x00\x00\x00\x00\x00\x00\x00",
+        "\x23\xb5\x2f\xfd\xc0\x00\x00\x00\x00\x00\x00\x00\x00",
+        "\x24\xb5\x2f\xfd\x08\xc0\x00\x00\x00\x00\x00\x00\x00",
+        "\x25\xb5\x2f\xfd\x08\xc0\x00\x00\x00\x00\x00\x00\x00",
+        "\x26\xb5\x2f\xfd\x07\xc0\x00\x00\x00\x00\x00\x00\x00",
+        "\x27\xb5\x2f\xfd\x04\x50\xea\x3b\x1d\x00\x00\x00\x00",
+        "\x28\xb5\x2f\xfd\x04\x50\x01\x00\x00\x99\xe9\xd8\x51",
+    };
+    int i;
+    for (i = 0; i < 8; i++) {
+        if (ZSTD_getFrameContentSize(legacy_compressions[i], 13)
+            != ZSTD_CONTENTSIZE_ERROR)
+            return i + 1;
+    }
+    abort();
 }
-
-static inline size_t load_le32(const char *c)
-{
-    return
-        (((size_t)(unsigned char) c[0]) <<  0) |
-        (((size_t)(unsigned char) c[1]) <<  8) |
-        (((size_t)(unsigned char) c[2]) << 16) |
-        (((size_t)(unsigned char) c[3]) << 24);
-}
-
-
-PyDoc_STRVAR(compress_old_doc,
-    "compress_old(data, level="SZD")\n"
-    "--\n\n"
-    "Compress data and return the compressed form.\n\n"
-    "Produces a custom compressed format that is not compatible with\n"
-    "the standard .zst file format.  Deprecated.\n\n"
-    "Raises a zstd.Error exception if any error occurs.");
-
-static PyObject *compress_old(PyObject* self, PyObject *args, PyObject *kwds)
-{
-    PyObject *src;
-    Py_buffer srcbuf;
-    PyObject *dst;
-    char *dst_ptr;
-    size_t dst_size;
-    size_t c_size;
-    int level = ZSTD_CLEVEL_DEFAULT;
-
-    static char *kwlist[] = {"data", "level", NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|i:compress_old", kwlist,
-                                     &src, &level))
-        return NULL;
-
-    /* This is old version function - no Error raising here. */
-    if (0 == level) level=ZSTD_CLEVEL_DEFAULT;
-    if (level < ZSTD_CLEVEL_MIN) level=ZSTD_CLEVEL_MIN;
-    if (level > ZSTD_CLEVEL_MAX) level=ZSTD_CLEVEL_MAX;
-
-    if (obj_AsByteBuffer(src, &srcbuf))
-        return NULL;
-
-    if (srcbuf.len > old_max_size) {
-        PyErr_Format(ZstdError, "input of %zd bytes is too large "
-                     "for old compressed format", srcbuf.len);
-        PyBuffer_Release(&srcbuf);
-        return NULL;
-    }
-
-    dst_size = ZSTD_compressBound(srcbuf.len);
-    dst = PyBytes_FromStringAndSize(NULL, hdr_size + dst_size);
-    if (dst == NULL) {
-        PyBuffer_Release(&srcbuf);
-        return NULL;
-    }
-    dst_ptr = PyBytes_AS_STRING(dst);
-
-    store_le32(dst_ptr, srcbuf.len);
-    if (srcbuf.len > 0) {
-
-        Py_BEGIN_ALLOW_THREADS;
-        c_size = ZSTD_compress(dst_ptr + hdr_size, dst_size,
-                               srcbuf.buf, srcbuf.len, level);
-        Py_END_ALLOW_THREADS;
-
-        if (ZSTD_isError(c_size)) {
-            PyErr_Format(ZstdError, "Compression error: %s",
-                         ZSTD_getErrorName(c_size));
-            Py_CLEAR(dst);
-        } else {
-            _PyBytes_Resize(&dst, c_size + hdr_size);
-        }
-    }
-
-    PyBuffer_Release(&srcbuf);
-    return dst;
-}
-
-PyDoc_STRVAR(decompress_old_doc,
-    "decompress_old(data)\n"
-    "--\n\n"
-    "Decompress data and return the uncompressed form.\n\n"
-    "Expects a custom compressed format that is not compatible with\n"
-    "the standard .zst file format.  Deprecated.\n\n"
-    "Raises a zstd.Error exception if any error occurs.");
-
-static PyObject *decompress_old(PyObject* self, PyObject *args, PyObject *kwds)
-{
-    PyObject *src;
-    Py_buffer srcbuf;
-    PyObject *dst;
-    char *dst_ptr;
-    size_t dst_size;
-    size_t c_size;
-
-    static char *kwlist[] = {"data", NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O:decompress_old", kwlist,
-                                     &src))
-        return NULL;
-
-    if (obj_AsByteBuffer(src, &srcbuf))
-        return NULL;
-
-    if (srcbuf.len < hdr_size) {
-        PyErr_SetString(ZstdError, "input too short");
-        PyBuffer_Release(&srcbuf);
-        return NULL;
-    }
-    dst_size = load_le32(srcbuf.buf);
-
-    if (dst_size > old_max_size) {
-        PyErr_Format(ZstdError, "invalid size in header: %zu (too large)",
-                     dst_size);
-        PyBuffer_Release(&srcbuf);
-        return NULL;
-    }
-    dst = PyBytes_FromStringAndSize(NULL, dst_size);
-
-    if (dst != NULL && dst_size > 0) {
-        dst_ptr = PyBytes_AS_STRING(dst);
-
-        Py_BEGIN_ALLOW_THREADS;
-        c_size = ZSTD_decompress(dst_ptr, dst_size,
-                                 srcbuf.buf + hdr_size, srcbuf.len - hdr_size);
-        Py_END_ALLOW_THREADS;
-
-        if (ZSTD_isError(c_size)) {
-            PyErr_Format(ZstdError, "Decompression error: %s",
-                         ZSTD_getErrorName(c_size));
-            Py_CLEAR(dst);
-
-        } else if (c_size != dst_size) {
-            PyErr_Format(ZstdError, "Decompression error: length mismatch "
-                         "(expected %zu, got %zu bytes)",
-                         dst_size, c_size);
-            Py_CLEAR(dst);
-
-        }
-    }
-
-    PyBuffer_Release(&srcbuf);
-    return dst;
-}
-
-#endif // PYZSTD_LEGACY > 0
 
 static void zstd_add_constants(PyObject *module)
 {
@@ -465,6 +433,9 @@ static void zstd_add_constants(PyObject *module)
     PyModule_AddIntConstant(module, "CLEVEL_MIN", ZSTD_CLEVEL_MIN);
     PyModule_AddIntConstant(module, "CLEVEL_MAX", ZSTD_CLEVEL_MAX);
     PyModule_AddIntConstant(module, "CLEVEL_DEFAULT", ZSTD_CLEVEL_DEFAULT);
+
+    PyModule_AddIntConstant(module, "MIN_LEGACY_FORMAT",
+                            detect_zstd_legacy_format_support());
 }
 
 static PyMethodDef ZstdMethods[] = {
@@ -476,12 +447,6 @@ static PyMethodDef ZstdMethods[] = {
      library_version_doc},
     {"library_version_number", (PyCFunction)library_version_number,
      METH_NOARGS, library_version_number_doc},
-#if defined PYZSTD_LEGACY && PYZSTD_LEGACY > 0
-    {"compress_old", (PyCFunction)compress_old, METH_VARARGS|METH_KEYWORDS,
-     compress_old_doc},
-    {"decompress_old", (PyCFunction)decompress_old, METH_VARARGS|METH_KEYWORDS,
-     decompress_old_doc},
-#endif
     {NULL, NULL, 0, NULL}
 };
 

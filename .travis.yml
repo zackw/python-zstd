@@ -22,7 +22,5 @@ install:
 script:
 - python setup.py test
 - python setup.py clean -a
-- python setup.py --legacy test
-- python setup.py clean -a
 - python setup.py --external test
 - python setup.py clean -a

@@ -59,6 +59,12 @@ the zstandard library.
 .. data:: CLEVEL_DEFAULT
 
     Default compression level.
+
+.. data:: MIN_LEGACY_FORMAT
+
+    Oldest legacy Zstandard data format that can be decompressed.
+    1 is the very oldest, 8 is the finalized format.
+
 """
 
 from __future__ import absolute_import
@@ -81,27 +87,11 @@ CLEVEL_MIN = _zstd.CLEVEL_MIN
 CLEVEL_MAX = _zstd.CLEVEL_MAX
 CLEVEL_DEFAULT = _zstd.CLEVEL_DEFAULT
 
+MIN_LEGACY_FORMAT = _zstd.MIN_LEGACY_FORMAT
+
 __all__ = [ "compress", "decompress",
             "library_version", "library_version_number",
             "VERSION", "LIBRARY_VERSION", "LIBRARY_VERSION_NUMBER",
             "CLEVEL_MIN", "CLEVEL_MAX", "CLEVEL_DEFAULT",
+            "MIN_LEGACY_FORMAT",
             "Error" ]
-
-if hasattr(_zstd, "compress_old"):
-    def compress_old(data, level=3):
-        import warnings
-        warnings.warn(
-            "compress_old produces an incompatible compressed data format",
-            DeprecationWarning)
-        return _zstd.compress_old(data, level)
-    def decompress_old(data):
-        import warnings
-        warnings.warn(
-            "decompress_old expects an incompatible compressed data format",
-            DeprecationWarning)
-        return _zstd.decompress_old(data)
-
-    compress_old.__doc__ = _zstd.compress_old.__doc__
-    decompress_old.__doc__ = _zstd.decompress_old.__doc__
-
-    __all__.extend([ "compress_old", "decompress_old" ])
