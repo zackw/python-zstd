@@ -29,11 +29,7 @@ except AttributeError:
             raise CalledProcessError(retcode, cmd, output=output)
         return output
 
-###
-# Version policy: The first three elements of the package version will
-# always match the version of the bundled libzstd.  The fourth element
-# counts updates to the package in between updates to libzstd.
-#
+# Get the package version number from PKG-INFO.
 with open("PKG-INFO", "rt") as fp:
     for line in fp:
         k, _, v = line.strip().partition(": ")
@@ -198,16 +194,15 @@ if __name__ == '__main__':
         long_description = readme.read()
 
     setup(
-        name="zstd",
+        name="zstd2",
         version=PKG_VERSION_STR,
-        description=("Simple python bindings for Yann Collet's "
-                     "Zstandard compression library"),
+        description="Simple API for Zstandard compression and decompression",
         long_description=long_description,
-        author="Sergey Dryabzhinsky, Anton Stuk",
-        author_email="sergey.dryabzhinsky@gmail.com",
-        maintainer="Sergey Dryabzhinsky",
-        maintainer_email="sergey.dryabzhinsky@gmail.com",
-        url="https://github.com/sergey-dryabzhinsky/python-zstd",
+        author="Zack Weinberg, Sergey Dryabzhinsky, Anton Stuk",
+        author_email="zackw@panix.com",
+        maintainer="Zack Weinberg",
+        maintainer_email="zackw@panix.com",
+        url="https://github.com/zackw/python-zstd",
         keywords=["zstd", "zstandard", "compression"],
         license="BSD",
         packages=find_packages(exclude="tests"),

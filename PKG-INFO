@@ -1,11 +1,11 @@
 Metadata-Version: 1.1
-Name: zstd
-Version: 1.3.5.1
-Summary: Simple python bindings for Yann Collet's Zstandard compression library
-Home-page: https://github.com/sergey-dryabzhinsky/python-zstd
-Author: Sergey Dryabzhinsky
-Author-email: sergey.dryabzhinsky@gmail.com
+Name: zstd2
+Version: 2.0.0
+Summary: Simple API for Zstandard compression and decompression
+Home-page: https://github.com/zackw/python-zstd
+Author: Zack Weinberg
+Author-email: zackw@panix.com
 License: BSD
-Download-URL: https://github.com/sergey-dryabzhinsky/python-zstd/archive/v1.3.5.1.tar.gz
+Download-URL: https://github.com/zackw/python-zstd/archive/v2.0.0.tar.gz
 Keywords: zstd,zstandard,compression
 Platform: POSIX

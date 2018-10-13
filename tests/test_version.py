@@ -10,17 +10,15 @@ MIN_LIBRARY_VERSION_NUMBER = 1*100*100 + 3*100 + 4
 class VersionNumbers(BaseTestZSTD):
 
     def test_VERSION(self):
-        # zstd.VERSION should have four components,
+        # zstd.VERSION should have three components,
         # each of them a nonnegative integer
-        a, b, c, d = zstd.VERSION.split('.')
+        a, b, c = zstd.VERSION.split('.')
         a = int(a)
         b = int(b)
         c = int(c)
-        d = int(d)
         self.assertTrue(a >= 0)
         self.assertTrue(b >= 0)
         self.assertTrue(c >= 0)
-        self.assertTrue(d >= 0)
 
     def test_LIBRARY_VERSION(self):
         # zstd.LIBRARY_VERSION should have three components,
