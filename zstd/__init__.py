@@ -87,54 +87,6 @@ __all__ = [ "compress", "decompress",
             "CLEVEL_MIN", "CLEVEL_MAX", "CLEVEL_DEFAULT",
             "Error" ]
 
-# alternative names for compatibility
-def _warn_deprecated_alt(old, new):
-    import warnings
-    warnings.warn("%s is deprecated, use %s instead" % (old, new),
-                  DeprecationWarning)
-
-def ZSTD_compress(data, level=3):
-    "Deprecated alternative name for compress"
-    _warn_deprecated_alt("ZSTD_compress", "compress")
-    return compress(data, level)
-def dumps(data, level=3):
-    "Deprecated alternative name for compress"
-    _warn_deprecated_alt("dumps", "compress")
-    return compress(data, level)
-
-def ZSTD_uncompress(data):
-    "Deprecated alternative name for decompress"
-    _warn_deprecated_alt("ZSTD_uncompress", "decompress")
-    return decompress(data)
-def uncompress(data):
-    "Deprecated alternative name for decompress"
-    _warn_deprecated_alt("uncompress", "decompress")
-    return decompress(data)
-def loads(data):
-    "Deprecated alternative name for decompress"
-    _warn_deprecated_alt("loads", "decompress")
-    return decompress(data)
-
-def version():
-    "Deprecated alternative way to access the VERSION constant."
-    _warn_deprecated_alt("version()", "VERSION")
-    return VERSION
-
-def ZSTD_version():
-    "Deprecated alternative name for library_version"
-    _warn_deprecated_alt("ZSTD_version", "library_version")
-    return library_version()
-
-def ZSTD_version_number():
-    "Deprecated alternative name for library_version_number"
-    _warn_deprecated_alt("ZSTD_version_number", "library_version_number")
-    return library_version_number()
-
-__all__.extend([ "ZSTD_compress", "dumps",
-                 "ZSTD_uncompress", "uncompress", "loads",
-                 "version", "ZSTD_version", "ZSTD_version_number" ])
-
-
 if hasattr(_zstd, "compress_old"):
     def compress_old(data, level=3):
         import warnings
