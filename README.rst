@@ -2,8 +2,8 @@
 python-zstd
 ===========
 
-.. image:: https://travis-ci.org/sergey-dryabzhinsky/python-zstd.svg?branch=master
-    :target: https://travis-ci.org/sergey-dryabzhinsky/python-zstd
+.. image:: https://travis-ci.org/zackw/python-zstd.svg?branch=master
+    :target: https://travis-ci.org/zackw/python-zstd
 
 Simple python bindings for Yann Kollet’s Zstandard compression
 library.
