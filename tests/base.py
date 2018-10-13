@@ -4,10 +4,14 @@ import logging
 import os
 import sys
 import unittest
+import zstd
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("ZSTD")
 log.info("Python version: %s" % sys.version)
+log.info("python-zstd version: %s" % zstd.VERSION)
+log.info("built with libzstd version: %s" % zstd.LIBRARY_VERSION)
+log.info("running with libzstd version: %s" % zstd.library_version())
 
 ###
 # The feature of skipping tests was added to unittest in 2.7.
@@ -23,7 +27,7 @@ else:
         pass
 
     class TestCaseWithSkip(unittest.TestCase):
-        def skipTest(reason):
+        def skipTest(self, reason):
             raise SkipTest(reason)
 
         # super().run() needs to do work before and after calling the

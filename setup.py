@@ -106,7 +106,7 @@ if SUP_EXTERNAL:
                         ext_cflags.append(cflag)
 
 
-        except CalledProcessError:
+        except subprocess.CalledProcessError:
             # pkg-config is not available or does not know about libzstd.
             # Assume we don't need to do anything special.
             pass
