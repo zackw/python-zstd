@@ -251,16 +251,6 @@ CDATA_046 = (
 
 class CompressionFormats(BaseTestZSTD):
 
-    def test_compress_std_format(self):
-        if not zstd.VERSION.startswith(zstd.library_version()):
-            self.skipTest("version mismatch - compressed data may not match")
-
-        self.assertEqual(CDATA_134_DEF, zstd.compress(tDATA_134))
-        self.assertEqual(CDATA_134_MIN,
-                         zstd.compress(tDATA_134, zstd.CLEVEL_MIN))
-        self.assertEqual(CDATA_134_MAX,
-                         zstd.compress(tDATA_134, zstd.CLEVEL_MAX))
-
     def test_decompress_std_format(self):
         self.assertEqual(tDATA_134, zstd.decompress(CDATA_134_DEF))
         self.assertEqual(tDATA_134, zstd.decompress(CDATA_134_MIN))
