@@ -40,8 +40,8 @@
 #endif
 
 #if (PY_MAJOR_VERSION == 2 && PY_MINOR_VERSION < 6) \
- || (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION < 2)
-# error "python-zstd must be built using Python 2.(>=6) or 3.(>=2)"
+ || (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION < 4)
+# error "python-zstd must be built using Python 2.(>=6) or 3.(>=4)"
 #endif
 
 /*

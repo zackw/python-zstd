@@ -10,25 +10,6 @@ from setuptools.command.build_ext import build_ext as cmd_build_ext
 from distutils.command.clean import clean as cmd_clean
 from distutils.sysconfig import get_config_var
 
-# subprocess.check_output was added in 2.7
-try:
-    check_output = subprocess.check_output
-except AttributeError:
-    # definition copied verbatim from 2.7 subprocess.py
-    def check_output(*popenargs, **kwargs):
-        if 'stdout' in kwargs:
-            raise ValueError('stdout argument not allowed, '
-                             'it will be overridden.')
-        process = subprocess.Popen(stdout=subprocess.PIPE, *popenargs, **kwargs)
-        output, unused_err = process.communicate()
-        retcode = process.poll()
-        if retcode:
-            cmd = kwargs.get("args")
-            if cmd is None:
-                cmd = popenargs[0]
-            raise CalledProcessError(retcode, cmd, output=output)
-        return output
-
 # Get the package version number from PKG-INFO.
 with open("PKG-INFO", "rt") as fp:
     for line in fp:
@@ -93,7 +74,8 @@ if SUP_EXTERNAL:
 
         # Let's see if pkg-config will help us out.
         try:
-            libs = check_output(["pkg-config", "libzstd", "--libs"])
+            libs = subprocess.check_output(
+                ["pkg-config", "libzstd", "--libs"])
             if libs:
                 if not isinstance(libs, str):
                     libs = libs.decode(sys.getdefaultencoding())
@@ -107,7 +89,8 @@ if SUP_EXTERNAL:
                     else:
                         ext_ldflags.append(lib)
 
-            cflags = check_output(["pkg-config", "libzstd", "--cflags"])
+            cflags = subprocess.check_output(
+                ["pkg-config", "libzstd", "--cflags"])
             if cflags:
                 if not isinstance(cflags, str):
                     cflags = cflags.decode(sys.getdefaultencoding())
@@ -229,10 +212,7 @@ if __name__ == '__main__':
             "Operating System :: POSIX",
             "Programming Language :: C",
             "Programming Language :: Python",
-            "Programming Language :: Python :: 2.6",
             "Programming Language :: Python :: 2.7",
-            "Programming Language :: Python :: 3.2",
-            "Programming Language :: Python :: 3.3",
             "Programming Language :: Python :: 3.4",
             "Programming Language :: Python :: 3.5",
             "Programming Language :: Python :: 3.6",

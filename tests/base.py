@@ -13,42 +13,6 @@ log.info("python-zstd version: %s" % zstd.VERSION)
 log.info("built with libzstd version: %s" % zstd.LIBRARY_VERSION)
 log.info("running with libzstd version: %s" % zstd.library_version())
 
-###
-# The feature of skipping tests was added to unittest in 2.7.
-# If necessary, shim TestCase.skipTest and supply a SkipTest
-# exception.  The skip decorators are not shimmed.
-
-if hasattr(unittest, "SkipTest"):
-    SkipTest = unittest.SkipTest
-    TestCaseWithSkip = unittest.TestCase
-
-else:
-    class SkipTest(Exception):
-        pass
-
-    class TestCaseWithSkip(unittest.TestCase):
-        def skipTest(self, reason):
-            raise SkipTest(reason)
-
-        # super().run() needs to do work before and after calling the
-        # actual test method, whether or not that method terminates by
-        # raising SkipTest.  So we must arrange to inject a wrapper
-        # around the test method itself.
-        def run(self, result=None):
-            try:
-                self._realTestMethodName = self._testMethodName
-                self._testMethodName = "shimTestMethod"
-                unittest.TestCase.run(self, result)
-            finally:
-                self._testMethodName = self._realTestMethodName
-
-        def shimTestMethod(self):
-            try:
-                realTestMethod = getattr(self, self._realTestMethodName)
-                return realTestMethod()
-            except SkipTest as e:
-                log.info("%s: test skipped: %s"
-                         % (self._realTestMethodName, str(e)))
 
 ###
 # The assertWarns[Regex]() context managers were added to unittest in
@@ -57,8 +21,8 @@ else:
 #
 # Some of this code was copied almost verbatim from 3.6 unittest/case.py.
 
-if hasattr(TestCaseWithSkip, 'assertWarns'):
-    TestCaseWithWarns = TestCaseWithSkip
+if hasattr(unittest.TestCase, 'assertWarns'):
+    TestCaseWithWarns = unittest.TestCase
 
 else:
     import re
@@ -128,7 +92,7 @@ else:
                          self.expected_regex.pattern, str(first_matching)))
             self._raiseFailure("{} not triggered".format(exc_name))
 
-    class TestCaseWithWarns(TestCaseWithSkip):
+    class TestCaseWithWarns(unittest.TestCase):
 
         def assertWarns(self, expected_warning):
             return _AssertWarnsContext(expected_warning, self)
@@ -147,4 +111,4 @@ class BaseTestZSTD(TestCaseWithWarns):
                                      "\\b" + name + "\\b")
 
 
-__all__ = ['SkipTest', 'BaseTestZSTD']
+__all__ = ['BaseTestZSTD']

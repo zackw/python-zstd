@@ -16,31 +16,29 @@ from tests.base import BaseTestZSTD
 # Explicit byte literals (b"") are available starting in Python 2.6.
 # Python 3.x does not let you put unescaped non-ASCII characters in
 # byte literals.
-# Python 3.2 does not support literal concatenation ("a" "b" == "ab") of
-# explicit Unicode literals.
 
 # Classic lorem ipsum + За словесными горами
 tDATA1 = (
-    u"Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam " +
-    u"nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat " +
-    u"volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation " +
-    u"ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo consequat. " +
-    u"Duis autem vel eum iriure dolor in hendrerit in vulputate velit esse " +
-    u"molestie consequat, vel illum dolore eu feugiat nulla facilisis at " +
-    u"vero eros et accumsan et iusto odio dignissim qui blandit praesent " +
-    u"luptatum zzril delenit augue duis dolore te feugait nulla facilisi. " +
-    u"И немного юникода. Далеко-далеко за словесными горами в стране " +
-    u"гласных и согласных живут рыбные тексты. Вдали от всех живут они " +
-    u"в буквенных домах на берегу Семантика большого языкового океана. " +
-    u"Маленький ручеек Даль журчит по всей стране и обеспечивает ее всеми " +
-    u"необходимыми правилами. Эта парадигматическая страна, в которой " +
-    u"жаренные члены предложения залетают прямо в рот. Даже всемогущая " +
-    u"пунктуация не имеет власти над рыбными текстами, ведущими " +
+    u"Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam "
+    u"nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat "
+    u"volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation "
+    u"ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo consequat. "
+    u"Duis autem vel eum iriure dolor in hendrerit in vulputate velit esse "
+    u"molestie consequat, vel illum dolore eu feugiat nulla facilisis at "
+    u"vero eros et accumsan et iusto odio dignissim qui blandit praesent "
+    u"luptatum zzril delenit augue duis dolore te feugait nulla facilisi. "
+    u"И немного юникода. Далеко-далеко за словесными горами в стране "
+    u"гласных и согласных живут рыбные тексты. Вдали от всех живут они "
+    u"в буквенных домах на берегу Семантика большого языкового океана. "
+    u"Маленький ручеек Даль журчит по всей стране и обеспечивает ее всеми "
+    u"необходимыми правилами. Эта парадигматическая страна, в которой "
+    u"жаренные члены предложения залетают прямо в рот. Даже всемогущая "
+    u"пунктуация не имеет власти над рыбными текстами, ведущими "
     u"безорфографичный образ жизни."
 ).encode("utf-8")
 
 tDATA2 = (
-    u"This is must be very very long string to be compressed by zstd. " +
+    u"This is must be very very long string to be compressed by zstd. "
     u"AAAAAAAAAAARGGHHH!!! Just hope its enough length. И немного юникода."
 ).encode("utf-8")
 
@@ -162,8 +160,8 @@ class CompressionErrors(BaseTestZSTD):
 
 # current (pyzstd & zstd >= 1.3.4) format
 tDATA_134 = (
-    u"This is must be very very long string to be compressed by zstd " +
-    u"version 1.3.4. AAAAAAAAAAARGGHHH!!! Just hope its enough length. " +
+    u"This is must be very very long string to be compressed by zstd "
+    u"version 1.3.4. AAAAAAAAAAARGGHHH!!! Just hope its enough length. "
     u"И немного юникода."
 ).encode("utf-8")
 
@@ -210,8 +208,8 @@ CDATA_134_MAX = ( # zstd --no-check --ultra -22 tDATA_134.txt
 
 # legacy compression format produced by pyzstd 0.3.6
 tDATA_036 = (
-    u"This is must be very very long string to be compressed by zstd " +
-    u"version 0.3.6. AAAAAAAAAAARGGHHH!!! Just hope its enough length. " +
+    u"This is must be very very long string to be compressed by zstd "
+    u"version 0.3.6. AAAAAAAAAAARGGHHH!!! Just hope its enough length. "
     u"И немного юникода."
 ).encode("utf-8")
 CDATA_036 = (
@@ -230,8 +228,8 @@ CDATA_036 = (
 
 # legacy compression format produced by pyzstd 0.4.6
 tDATA_046 = (
-    u"This is must be very very long string to be compressed by zstd " +
-    u"version 0.4.6. AAAAAAAAAAARGGHHH!!! Just hope its enough length. " +
+    u"This is must be very very long string to be compressed by zstd "
+    u"version 0.4.6. AAAAAAAAAAARGGHHH!!! Just hope its enough length. "
     u"И немного юникода."
 ).encode("utf-8")
 CDATA_046 = (

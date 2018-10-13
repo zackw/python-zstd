@@ -1,9 +1,6 @@
 language: python
 python:
-  - 2.6
   - 2.7
-  - 3.2
-  - 3.3
   - 3.4
   - 3.5
   - 3.6
@@ -16,7 +13,6 @@ addons:
     sources:
     - trusty
     - deadsnakes
-    - sourceline: 'ppa:sergey-dryabzhinsky/packages'
 
 install:
 - sudo apt-get update -qq
