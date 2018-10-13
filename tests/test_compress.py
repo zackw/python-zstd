@@ -91,11 +91,11 @@ class CompressionErrors(BaseTestZSTD):
                           "CLEVEL_DEFAULT")
 
     def test_compress_level_too_high(self):
-        self.assertRaises(zstd.Error, zstd.compress, b"doesn't matter",
+        self.assertRaises(ValueError, zstd.compress, b"doesn't matter",
                           zstd.CLEVEL_MAX + 1)
 
     def test_compress_level_too_low(self):
-        self.assertRaises(zstd.Error, zstd.compress, b"doesn't matter",
+        self.assertRaises(ValueError, zstd.compress, b"doesn't matter",
                           zstd.CLEVEL_MIN - 1)
 
     def test_decompress_nothing(self):

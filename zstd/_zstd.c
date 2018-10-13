@@ -185,18 +185,15 @@ static PyObject *compress(PyObject* self, PyObject *args, PyObject *kwds)
                                      &src, &level))
         return NULL;
 
-    if (0 == level) level=ZSTD_CLEVEL_DEFAULT;
-    /* Fast levels (zstd >= 1.3.4) - [-1..-5] */
-    /* Usual levels                - [ 1..22] */
-    /* If level less than -5 or 1 - raise Error, level 0 handled before. */
+    if (level == 0)
+        level = ZSTD_CLEVEL_DEFAULT;
     if (level < ZSTD_CLEVEL_MIN) {
-        PyErr_Format(ZstdError, "Bad compression level - less than %d: %d",
+        PyErr_Format(PyExc_ValueError, "Bad compression level - less than %d: %d",
                      ZSTD_CLEVEL_MIN, level);
         return NULL;
     }
-    /* If level more than 22 - raise Error. */
     if (level > ZSTD_CLEVEL_MAX) {
-        PyErr_Format(ZstdError, "Bad compression level - more than %d: %d",
+        PyErr_Format(PyExc_ValueError, "Bad compression level - more than %d: %d",
                      ZSTD_CLEVEL_MAX, level);
         return NULL;
     }
@@ -241,7 +238,7 @@ static PyObject *decompress_fixed(const unsigned char *src_ptr,
 
     if (raw_frame_size > (unsigned long long)PY_SSIZE_T_MAX) {
         PyErr_SetString(ZstdError,
-                        "decompressed data is too large for a bytes object");
+                        "Decompressed data is too large for a bytes object");
         return NULL;
     }
 
@@ -350,7 +347,7 @@ static PyObject *decompress(PyObject* self, PyObject *args, PyObject *kwds)
     if (raw_frame_size == ZSTD_CONTENTSIZE_ERROR
         && !skip_old_frame_header(&src_ptr, &src_size, &raw_frame_size))
     {
-        PyErr_SetString(ZstdError, "compressed data is invalid");
+        PyErr_SetString(ZstdError, "Compressed data is invalid");
         PyBuffer_Release(&srcbuf);
         return NULL;
     }
