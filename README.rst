@@ -5,39 +5,43 @@ python-zstd 2.0
 .. image:: https://travis-ci.org/zackw/python-zstd.svg?branch=zstd2
     :target: https://travis-ci.org/zackw/python-zstd
 
-`Zstandard`_, or Zstd for short, is a new lossless compression algorithm,
+`Zstandard, or Zstd for short`_, is a new lossless compression algorithm,
 intended to provide compression ratios at least as good as zlib while
 being significantly faster.  It can also produce compression ratios
 competitive with bzip2 and lzma, at the cost of compression speed,
 but preserving the same high *decompression* speed.
 
-.. _Zstandard: https://github.com/facebook/zstd
-
-This module, `zstd`_ 2.0, provides a simple API wrapping the reference
-C implementation, libzstd, of Zstandard.  It provides functionality
+This package, `zstd2`_, provides a simple API wrapping the reference
+C implementation, `libzstd`_, of Zstandard.  It provides functionality
 comparable to the various compression modules in the Python standard
 library.
 
-.. _zstd: https://github.com/zackw/python-zstd
-
 We do not currently plan to support compression dictionaries, nor any
-of the experimental libzstd APIs, in this module.  The `python-zstandard`_
-module, maintained by Gregory Szorc, provides access to these features
-at the cost of a much more elaborate API.
+of the experimental libzstd APIs, in this module.  The `zstandard`_
+package, maintained by Gregory Szorc, provides access to these
+features at the cost of a much more elaborate API.
 
-.. _python-zstandard: https://pypi.python.org/pypi/zstandard
-
-zstd 2.0 is a fork of the original `python-zstd`_ maintained by Sergey
+zstd2 is a fork of the `zstd`_ package maintained by Sergey
 Dryabzhinsky.  That line of development offers compatibility with
 older versions of Python than this fork, and bundles its own copy of
 libzstd for your convenience; however, its API lacks support for
 streaming compression and decompression.
 
-.. _python-zstd: https://github.com/sergey-dryabzhinsky/python-zstd
-
 zstd 2.0 does **not** bundle a copy of libzstd.  The system must
 supply this library.  Version 1.3.4 or later is required.  No
 experimental or deprecated features of libzstd are used.
+
+.. _Zstandard, or Zstd for short: https://facebook.github.io/zstd/
+.. _zstd2: https://github.com/zackw/python-zstd
+.. _libzstd: https://github.com/facebook/zstd
+.. _zstandard: https://pypi.python.org/pypi/zstandard
+.. _zstd: https://github.com/sergey-dryabzhinsky/python-zstd
+
+..
+   Note: Ideally, the “Zstandard, or Zstd for short” link would
+   go to https://www.zstd.net/ rather than to the github.io page
+   that www.zstd.net currently redirects to.  However, www.zstd.net
+   currently serves an invalid TLS certificate, so that won’t work.
 
 
 Build and install from PyPI
