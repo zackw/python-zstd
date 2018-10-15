@@ -21,19 +21,19 @@ library.
 .. _zstd: https://github.com/zackw/python-zstd
 
 We do not currently plan to support compression dictionaries, nor any
-of the experimental libzstd APIs, in this module.  The `zstandard`_
+of the experimental libzstd APIs, in this module.  The `python-zstandard`_
 module, maintained by Gregory Szorc, provides access to these features
 at the cost of a much more elaborate API.
 
-.. _zstandard: https://pypi.python.org/pypi/zstandard
+.. _python-zstandard: https://pypi.python.org/pypi/zstandard
 
-zstd 2.0 is a fork of the original python-zstd `maintained by Sergey
-Dryabzhinsky`_.  That line of development offers compatibility with
+zstd 2.0 is a fork of the original `python-zstd`_ maintained by Sergey
+Dryabzhinsky.  That line of development offers compatibility with
 older versions of Python than this fork, and bundles its own copy of
 libzstd for your convenience; however, its API lacks support for
 streaming compression and decompression.
 
-.. _maintained by Sergey Dryabzhinsky: https://github.com/sergey-dryabzhinsky/python-zstd
+.. _python-zstd: https://github.com/sergey-dryabzhinsky/python-zstd
 
 zstd 2.0 does **not** bundle a copy of libzstd.  The system must
 supply this library.  Version 1.3.4 or later is required.  No
@@ -43,11 +43,11 @@ experimental or deprecated features of libzstd are used.
 Build and install from PyPI
 ---------------------------
 
-Source packages are available from PyPI for Python 2.6+::
+Source packages are available from PyPI for Python 2.7::
 
    $ pip install zstd2
 
-and for Python 3.2+::
+and for Python 3.4+::
 
    $ pip3 install zstd2
 
@@ -92,7 +92,7 @@ or for Python 3::
 
 ``setup.py`` will attempt to use ``pkg-config`` to locate an external
 libzstd; failing that, it will assume that the header file ``zstd.h``
-and library file ``-lzstd`` are available without special compile-time
+and C library ``-lzstd`` are available without special compile-time
 options.  If this is incorrect, you can use the ``--libraries``,
 ``--include-dirs``, and ``--library-dirs`` options to tell it where to
 look::
@@ -136,8 +136,8 @@ the libzstd version in use at runtime is ``zstd.library_version()``.
    '1.3.6'
 
 This is what you would see if the module had been compiled against
-version 1.3.5 of an external libzstd, but then the library was updated
-to 1.3.6.
+version 1.3.5 of libzstd, but then the shared library was updated to
+1.3.6.
 
 Compatibility Notes
 -------------------
