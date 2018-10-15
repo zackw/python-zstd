@@ -266,7 +266,8 @@ static PyObject *decompress_fixed(const unsigned char *src_ptr,
     return dst;
 }
 
-static PyObject *decompress_stream(const unsigned char *src_ptr, size_t src_size)
+static PyObject *decompress_stream(const unsigned char *src_ptr,
+                                   size_t src_size)
 {
     PyObject *dst;
     size_t dst_size;
