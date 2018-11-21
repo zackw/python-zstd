@@ -31,18 +31,11 @@ zstd 2.0 does **not** bundle a copy of libzstd.  The system must
 supply this library.  Version 1.3.4 or later is required.  No
 experimental or deprecated features of libzstd are used.
 
-.. _Zstandard, or Zstd for short: https://facebook.github.io/zstd/
+.. _Zstandard, or Zstd for short: https://www.zstd.net/
 .. _zstd2: https://github.com/zackw/python-zstd
 .. _libzstd: https://github.com/facebook/zstd
 .. _zstandard: https://pypi.python.org/pypi/zstandard
 .. _zstd: https://github.com/sergey-dryabzhinsky/python-zstd
-
-..
-   Note: Ideally, the “Zstandard, or Zstd for short” link would
-   go to https://www.zstd.net/ rather than to the github.io page
-   that www.zstd.net currently redirects to.  However, www.zstd.net
-   currently serves an invalid TLS certificate, so that won’t work.
-
 
 Build and install from PyPI
 ---------------------------
